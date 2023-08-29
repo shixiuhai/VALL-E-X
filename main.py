@@ -11,9 +11,9 @@ preload_models()
 
 app = Flask(__name__)
 
-def text_to_voice(text:str, promptName:str=""):
+def text_to_voice(text:str, promptName:str, mode:str):
     try:
-        audio_array = generate_audio_from_long_text(text, prompt=promptName)
+        audio_array = generate_audio_from_long_text(text, prompt=promptName,mode=mode)
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
             # save audio to disk
             write_wav(temp_file.name, SAMPLE_RATE, audio_array)
@@ -30,6 +30,12 @@ def text_to_voice(text:str, promptName:str=""):
 def generate_prompt(audio_prompt_path:str, transcript:str):
     try:
         promptName=str(uuid.uuid4())
+        # 如果语音文本为空就自动生成文本
+        if transcript=="":
+            make_prompt(name=promptName, audio_prompt_path=audio_prompt_path)
+            # os.remove(audio_prompt_path)
+            return make_response(jsonify({"promptName":promptName,"code":200}),200)
+        
         make_prompt(name=promptName, audio_prompt_path=audio_prompt_path,
         transcript=transcript)
         # os.remove(audio_prompt_path)
@@ -41,7 +47,8 @@ def generate_prompt(audio_prompt_path:str, transcript:str):
 @app.route('/generatePrompt', methods=['POST'])
 def voice_generate_prompt():
     file = request.files['file']
-    promptText = request.form.get('promptText')
+    promptText = request.form.get('promptText',"")
+    
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
         file.save(temp_file)
         return generate_prompt(temp_file.name,promptText)
@@ -51,7 +58,9 @@ def voice_text_to_voice():
     data = request.get_json()
     text = data.get("text")
     promptName = data.get("promptName","dingzhen")
-    return text_to_voice(text,promptName)
+    mode = data.get("mode", "fixed-prompt")
+    
+    return text_to_voice(text,promptName,mode)
     
     
 
