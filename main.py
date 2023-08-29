@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify,make_response,Response
 from utils.prompt_making import make_prompt
 import uuid
 import tempfile
-from utils.generation import SAMPLE_RATE, generate_audio, preload_models
+from utils.generation import SAMPLE_RATE, preload_models,generate_audio_from_long_text
 from scipy.io.wavfile import write as write_wav
 import os
 # https://plachtaa.github.io/ # 网页demo
@@ -11,9 +11,9 @@ preload_models()
 
 app = Flask(__name__)
 
-def text_to_voice(text:str, promptName:str):
+def text_to_voice(text:str, promptName:str=""):
     try:
-        audio_array = generate_audio(text, prompt=promptName)
+        audio_array = generate_audio_from_long_text(text, prompt=promptName)
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
             # save audio to disk
             write_wav(temp_file.name, SAMPLE_RATE, audio_array)
@@ -50,11 +50,11 @@ def voice_generate_prompt():
 def voice_text_to_voice():
     data = request.get_json()
     text = data.get("text")
-    promptName = data.get("promptName")
+    promptName = data.get("promptName","dingzhen")
     return text_to_voice(text,promptName)
     
     
 
 if __name__ == "__main__":
     
-    app.run(host='0.0.0.0',port=7000,threaded=1)
+    app.run(host='0.0.0.0',port=7000,threaded=4)
